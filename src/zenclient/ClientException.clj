@@ -12,7 +12,7 @@
 (defn -init [status errors]
   [[(join " " errors)] {:status status :errors errors}])
 
-(defn status [this] (:status (deref (.state this))))
+(defn status [this] (:status (.state this)))
 
-(defn errors [this] (:errors (deref (.state this))))
+(defn errors [this] (:errors (.state this)))
   
