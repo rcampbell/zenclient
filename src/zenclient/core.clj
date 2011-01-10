@@ -1,5 +1,6 @@
 (ns zenclient.core
   (:use [clojure.walk :only (postwalk)]
+	[clojure.string :only (join)]
 	[clojure.contrib.string :only (replace-char)]
 	[clojure.contrib.json :only (read-json json-str)]
 	[clojure.contrib.condition :only (raise)]
@@ -22,9 +23,10 @@
       handle (fn [agent] (let [body (parse agent)]
 			   (if (success? agent)
 			     body
-			     (do (println "status = " (status agent) "\n" "body = " body)
-			       (raise :status (status agent)
-				    :errors (:errors body))))))
+			     (let [{errors :errors} body]
+			       (raise :message (join " " errors)
+				      :status (status agent)
+				      :errors errors)))))
       headers {"Accept" "application/json"
 	       "Content-Type" "application/json"}]
   (defn api-get [path]
