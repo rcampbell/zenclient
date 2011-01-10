@@ -2,10 +2,12 @@
   "getting job progress"
   (:use zenclient.core))
 
+(declare *api-key*)
+
 (defn output-file-progress 
   "gets the current status of an output file"
   [output-id]
-  (api-get (format "/outputs/%s/progress?api_key=%s" output-id api-key)))
+  (api-get (format "/outputs/%s/progress?api_key=%s" output-id *api-key*)))
       
 (let [select (lazy-loader output-file-progress)]
   (defn state [src] (select :state src))

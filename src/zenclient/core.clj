@@ -8,16 +8,16 @@
 
 (def ^{:private true} api "https://app.zencoder.com/api")
 
-(def api-key "c46d1828001d4969a03b45d60846649f")
+; (def *api-key* "c46d1828001d4969a03b45d60846649f")
+
+(letfn [(rename [a b k] (keyword (replace-char a b (name k))))
+	(swap [a b]
+	      (letfn [(f [[k v]] (if (keyword? k) [(rename a b k) v] [k v]))]
+		(fn [m] (postwalk (fn [x] (if (map? x) (into {} (map f x)) x)) m))))]
+  (def dash->underscore (swap \- \_))
+  (def underscore->dash (swap \_ \-)))
 
 (defn- debug [s] (println s) s)
-
-(letfn [(swap [a b k] (keyword (replace-char a b (name k))))
-	(walk [a b]
-	      (letfn [(f [[k v]] (if (keyword? k) [(swap a b k) v] [k v]))]
-		(fn [m] (postwalk (fn [x] (if (map? x) (into {} (map f x)) x)) m))))]
-  (def dash->underscore (walk \- \_))
-  (def underscore->dash (walk \_ \-)))
 
 (let [parse (comp read-json debug string)
       handle (fn [agent] (let [body (parse agent)]

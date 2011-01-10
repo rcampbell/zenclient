@@ -3,8 +3,10 @@
   (:use zenclient.core
 	[clojure.contrib.string :only (blank? lower-case)]))
 
+(declare *api-key*)
+
 (defn create-job! [input & options]
-  (let [job (merge {:api-key api-key :input input}
+  (let [job (merge {:api-key *api-key* :input input}
 		   (apply array-map options))]
     (api-post "/jobs" job)))
 

@@ -3,7 +3,7 @@
   (:use zenclient.core
 	[clojure.contrib.condition :only (handler-case)]))
 
-(declare *condition*)
+(declare *api-key*)
 
 ;; Create an Account
 
@@ -31,18 +31,16 @@
   "
   [email & options]
   (let [opts (apply array-map options)]
-    (handler-case :status
-      (api-post "/account" (merge {:email email :terms-of-service "1"} opts))
-      (handle 422 (throw (RuntimeException. "(")))))))
+    (api-post "/account" (merge {:email email :terms-of-service "1"} opts))))
 
-(def generated-api-key :api_key)
+(def api-key :api_key)
 (def password :password)
      
 
 ;; Account Details
 
 (defn account-details []
-  ((api-get (format "/account?api_key=%s" api-key))))
+  ((api-get (format "/account?api_key=%s" *api-key*))))
 
 (let [select (lazy-loader account-details)]
   (def account-state (partial select :account_state))
