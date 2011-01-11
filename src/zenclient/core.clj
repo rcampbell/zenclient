@@ -7,9 +7,11 @@
 	[clojure.contrib.http.agent :only (http-agent string success? status)])
   (:import [org.joda.time.format DateTimeFormat]))
 
-(def ^{:private true} api "https://app.zencoder.com/api")
-
 ; (def *api-key* "c46d1828001d4969a03b45d60846649f")
+
+(declare *api-key*)
+
+(def ^{:private true} api "https://app.zencoder.com/api")
 
 (letfn [(rename [a b k] (keyword (replace-char a b (name k))))
 	(swap [a b]
@@ -18,14 +20,12 @@
   (def dash->underscore (swap \- \_))
   (def underscore->dash (swap \_ \-)))
 
-(defn- debug [s] (println s) s)
-
-(let [parse (comp read-json debug string)
+(let [parse (comp underscore->dash read-json string)
       handle (fn [agent] (let [body (parse agent)]
 			   (if (success? agent)
 			     body
 			     (let [{errors :errors} body]
-			       (raise :message (join " " errors)
+			       (raise :message (join "; " errors)
 				      :status (status agent)
 				      :errors errors)))))
       headers {"Accept" "application/json"
@@ -45,10 +45,40 @@
 
 (defn ci= [l r] (.equalsIgnoreCase l r))
 
-(defn lazy-loader [f]
+(defn lazy-loader [loader]
   (fn
-    ([k] ((f) k))
-    ([k src] (if (instance? java.util.Map src) (src k) ((f src) k)))))
+    ([parser] (parser (loader)))
+    ([parser src]
+       (if (instance? java.util.Map src)
+	 (parser src)
+	 (parser (loader src))))))
+
+(doseq [k [:id
+	   :api-key
+	   :password
+	   :pass-through
+	   :input-media-file
+	   :output-media-files
+	   :thumbnails
+	   :watermark
+	  ; :format ns conflict
+	   :frame-rate
+	   :duration-in-ms	   
+	   :url
+	   :error-message
+	   :error-class
+	   :video-codec
+	   :audio-codec
+	   :video-bitrate-in-kbps
+	   :audio-bitrate-in-kbps
+	   :audio-sample-rate	   
+	   :height
+	   :width
+	   :file-size-bytes	   
+	   :channels
+	   :label
+	   ]]
+  (intern *ns* (symbol (name k)) k))
 
 
 ;; Creating an Encoding Job
@@ -58,21 +88,18 @@
 		   (apply array-map options))]
     (api-post "/jobs" job)))
 
-(def job-id :id)
 (defn output-ids [{outputs :outputs}] (map :id outputs))
 
 (letfn [(options-map [& options] (apply array-map options))]
-  (def output options-map)
-  (def watermark options-map)
-  (def thumbnails options-map)
-  (def access-control options-map))
+  (def with-output options-map)
+  (def with-watermark options-map)
+  (def with-thumbnails options-map)
+  (def with-access-control options-map))
 
 
 ;; Getting Job Progress
 
-(defn output-file-progress 
-  "gets the current status of an output file"
-  [output-id]
+(defn output-file-progress [output-id]
   (api-get (format "/outputs/%s/progress?api_key=%s" output-id *api-key*)))
       
 (let [select (lazy-loader output-file-progress)]
@@ -83,11 +110,11 @@
     (def failed? (state= "failed"))
     (def finished? (state= "finished"))
     (def cancelled? (state= "cancelled")))
-  (defn current-event [src] (select :current_event src))
+  (defn current-event [src] (select :current-event src))
   (letfn [(event= [v] (fn [src] (ci= v (current-event src))))]
     (def inspecting? (event= "Inspecting"))
     (def downloading? (event= "Downloading"))
-    (def transcoding? (event= "Transc(oding"))
+    (def transcoding? (event= "Transcoding"))
     (def uploading? (event= "Uploading")))
   (defn progress [src]
     "returns the percent complete of the current event"
@@ -98,54 +125,46 @@
 ;; Working With Jobs
 
 (defn list-jobs []
-  (api-get (format "/jobs?api_key=%s" *api-key*)))
+  (map :job (api-get (format "/jobs?api_key=%s" *api-key*))))
 
-(defn job-details 
-  "retrieve the details of a single job"
-  [job-id]
-  (api-get (format "/jobs/%s?api_key=%s" job-id *api-key*)))
+(defn job-details [job-id]
+  (:job (api-get (format "/jobs/%s?api_key=%s" job-id *api-key*))))
 
-(defn test? [{{test :test} :job}] test)
+(def test? :test)
+; (def state :state) ns conflict
 
 (let [pattern "yyyy-MM-dd'T'HH:mm:ssZ"
       formatter (DateTimeFormat/forPattern pattern)
-      parse #(.parseDateTime formatter %)
-      timestamp (fn [k] (fn [{job :job}] (parse (job k))))]
-  (def created-at (timestamp :created_at))
-  (def finished-at (timestamp :finished_at))
-  (def updated-at (timestamp :updated_at))
-  (def submitted-at (timestamp :submitted_at)))
+      timestamp #(.parseDateTime formatter %)]
+  (def created-at (comp timestamp :created-at))
+  (def finished-at (comp timestamp :finished-at))
+  (def updated-at (comp timestamp :updated-at))
+  (def submitted-at (comp timestamp :submitted-at)))
 
-(defn resubmit-job!
-  "resubmit an unfinished job for processing"
-  [job-id]
+(defn resubmit-job! [job-id]
   (api-get (format "/jobs/%s/resubmit?api_key=%s" job-id *api-key*)))
 
-(defn cancel-job!
-  "cancels a job that has not yet finished processing"
-  [job-id]
+(defn cancel-job! [job-id]
   (api-get (format "/jobs/%s/cancel?api_key=%s" job-id *api-key*)))
   
-(defn delete-job!
-  "deletes a job that has not yet finished processing"
-  [job-id]
+(defn delete-job! [job-id]
   (api-delete (format "/jobs/%s?api_key=%s" job-id *api-key*)))
 
 
 ;; Working With Accounts
 
 (defn create-account! [email & options]
-  (let [opts (apply array-map options)]
-    (api-post "/account" (merge {:email email :terms-of-service "1"} opts))))
-
-(def api-key :api_key)
-(def password :password)
+  (let [opts (apply array-map options)
+	account (merge {:email email :terms-of-service "1"} opts)
+	response (api-post "/account" account)]
+    (def *api-key* (response api-key))
+    response))
 
 (defn account-details []
   ((api-get (format "/account?api_key=%s" *api-key*))))
 
 (let [select (lazy-loader account-details)]
-  (def account-state (partial select :account_state))
+  (def account-state (partial select :account-state))
   (letfn [(state= [v] (fn
 			([] (ci= v (account-state)))
 			([m] (ci= v (account-state m)))))]
@@ -154,17 +173,17 @@
     (def account-suspended? (state= "suspended"))
     (def account-cancelled? (state= "cancelled")))
   (def plan (partial select :plan))
-  (def minutes-used (partial select :minutes_used))
-  (def minutes-included (partial select :minutes_used))
-  (def billing-state (partial select :billing_state))
+  (def minutes-used (partial select :minutes-used))
+  (def minutes-included (partial select :minutes-used))
+  (def billing-state (partial select :billing-state))
   (letfn [(state= [v] (fn
 			([] (ci= v (billing-state)))
 			([m] (ci= v (billing-state m)))))]
     (def billing-active? (state= "active"))
     (def billing-past-due? (state= "past due"))
     (def billing-cancelled? (state= "cancelled")))
-  (def privacy-mode? (partial select :privacy_mode))
-  (def integration-mode? (partial select :integration_mode))
+  (def privacy-mode? (partial select :privacy-mode))
+  (def integration-mode? (partial select :integration-mode))
   (def live-mode? (complement integration-mode?)))
 
 (defn integration-mode!
@@ -174,4 +193,3 @@
 (defn live-mode!
   "turns off integration mode" []
   (api-get "/account/live"))
-
