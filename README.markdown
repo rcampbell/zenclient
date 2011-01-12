@@ -54,7 +54,7 @@
 
 ### [Leiningen](https://github.com/technomancy/leiningen) or [Cake](https://github.com/ninjudd/cake)
 
-    [org.clojars.rcampbell/zenclient "1.0"]
+    [zenclient "1.0"]
 
 ### [Maven](http://maven.apache.org/) or [Ivy](http://ant.apache.org/ivy/)
 
@@ -64,7 +64,7 @@
     </repository>
 
     <dependency>
-      <groupId>org.clojars.rcampbell</groupId>
+      <groupId>zenclient</groupId>
       <artifactId>zenclient</artifactId>
       <version>1.0</version>
     </dependency>
