@@ -5,7 +5,8 @@
 	[clojure.contrib.json :only (read-json json-str)]
 	[clojure.contrib.condition :only (raise)]
 	[clojure.contrib.http.agent :only (http-agent string success? status)])
-  (:import [org.joda.time.format DateTimeFormat]))
+  (:import [java.util Map]
+	   [org.joda.time.format DateTimeFormat]))
 
 ; (def *api-key* "c46d1828001d4969a03b45d60846649f")
 
@@ -17,8 +18,8 @@
 	(swap [a b]
 	      (letfn [(f [[k v]] (if (keyword? k) [(rename a b k) v] [k v]))]
 		(fn [m] (postwalk (fn [x] (if (map? x) (into {} (map f x)) x)) m))))]
-  (def dash->underscore (swap \- \_))
-  (def underscore->dash (swap \_ \-)))
+  (def ^{:private true} dash->underscore (swap \- \_))
+  (def ^{:private true} underscore->dash (swap \_ \-)))
 
 (let [parse (comp underscore->dash read-json string)
       handle (fn [agent] (let [body (parse agent)]
@@ -30,26 +31,26 @@
 				      :errors errors)))))
       headers {"Accept" "application/json"
 	       "Content-Type" "application/json"}]
-  (defn api-get [path]
+  (defn- api-get [path]
     (let [uri (str api path)]
       (handle (http-agent uri :headers headers))))
-  (defn api-post
+  (defn- api-post
     ([path] (api-post path {}))
     ([path body]
        (let [uri (str api path)
 	     json-body (json-str (dash->underscore body))]
 	 (handle (http-agent uri :method "POST" :headers headers :body json-body)))))
-  (defn api-delete [path]
+  (defn- api-delete [path]
     (let [uri (str api path)]
       (handle (http-agent uri :method "DELETE")))))
 
-(defn ci= [l r] (.equalsIgnoreCase l r))
+(defn- ci= [l r] (.equalsIgnoreCase l r))
 
-(defn lazy-loader [loader]
+(defn- lazy-loader [loader]
   (fn
     ([parser] (parser (loader)))
     ([parser src]
-       (if (instance? java.util.Map src)
+       (if (instance? Map src)
 	 (parser src)
 	 (parser (loader src))))))
 
@@ -59,6 +60,7 @@
 	   :pass-through
 	   :input-media-file
 	   :output-media-files
+	   :outputs
 	   :thumbnails
 	   :watermark
 	  ; :format ns conflict
@@ -87,8 +89,6 @@
   (let [job (merge {:api-key *api-key* :input input}
 		   (apply array-map options))]
     (api-post "/jobs" job)))
-
-(defn output-ids [{outputs :outputs}] (map :id outputs))
 
 (letfn [(options-map [& options] (apply array-map options))]
   (def with-output options-map)
@@ -130,8 +130,12 @@
 (defn list-jobs []
   (map :job (api-get (format "/jobs?api_key=%s" *api-key*))))
 
-(defn job-details [job-id]
-  (:job (api-get (format "/jobs/%s?api_key=%s" job-id *api-key*))))
+(defn details
+  "pulls the latest job details where src is a either job id or job map"
+  [src]
+  (:job (api-get (format "/jobs/%s?api_key=%s"
+			 (if (instance? Map src) (src id) src)
+			 *api-key*))))
 
 (def test? :test)
 
