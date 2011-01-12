@@ -102,24 +102,27 @@
 (defn output-file-progress [output-id]
   (api-get (format "/outputs/%s/progress?api_key=%s" output-id *api-key*)))
       
-(let [select (lazy-loader output-file-progress)]
-  (defn state [src] (select :state src))
-  (letfn [(state= [v] (fn [src] (ci= v (state src))))]    
-    (def queued? (state= "queued"))
-    (def processing? (state= "processing"))
-    (def failed? (state= "failed"))
-    (def finished? (state= "finished"))
-    (def cancelled? (state= "cancelled")))
-  (defn current-event [src] (select :current-event src))
-  (letfn [(event= [v] (fn [src] (ci= v (current-event src))))]
-    (def inspecting? (event= "Inspecting"))
-    (def downloading? (event= "Downloading"))
-    (def transcoding? (event= "Transcoding"))
-    (def uploading? (event= "Uploading")))
-  (defn progress [src]
-    "returns the percent complete of the current event"
-    (if-let [percent (select :progress src)]
-      (Float/valueOf percent) nil)))
+(defn state [src] (:state src))
+(letfn [(state= [v] (fn [src] (ci= v (state src))))]
+  (def ready? (state= "ready"))
+  (def pending? (state= "pending"))
+  (def waiting? (state= "waiting"))
+  (def assigning? (state= "assigning"))
+  (def processing? (state= "processing"))
+  (def finished? (state= "finished")) 
+  (def failed? (state= "failed"))    
+  (def cancelled? (state= "cancelled"))
+  (def queued? (state= "queued")))
+(defn current-event [src] (:current-event src))
+(letfn [(event= [v] (fn [src] (ci= v (current-event src))))]
+  (def inspecting? (event= "Inspecting"))
+  (def downloading? (event= "Downloading"))
+  (def transcoding? (event= "Transcoding"))
+  (def uploading? (event= "Uploading")))
+(defn progress [src]
+  "returns the percent complete of the current event"
+  (if-let [percent (:progress src)]
+    (Float/valueOf percent) nil))
 
 
 ;; Working With Jobs
@@ -131,7 +134,6 @@
   (:job (api-get (format "/jobs/%s?api_key=%s" job-id *api-key*))))
 
 (def test? :test)
-; (def state :state) ns conflict
 
 (let [pattern "yyyy-MM-dd'T'HH:mm:ssZ"
       formatter (DateTimeFormat/forPattern pattern)
