@@ -56,7 +56,7 @@
 
 ### [Leiningen](https://github.com/technomancy/leiningen) or [Cake](https://github.com/ninjudd/cake)
 
-    [zenclient "1.0"]
+    [zenclient "1.1"]
 
 ### [Maven](http://maven.apache.org/) or [Ivy](http://ant.apache.org/ivy/)
 
@@ -68,7 +68,7 @@
     <dependency>
       <groupId>zenclient</groupId>
       <artifactId>zenclient</artifactId>
-      <version>1.0</version>
+      <version>1.1</version>
     </dependency>
 
 ## Notes
