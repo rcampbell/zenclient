@@ -21,6 +21,8 @@
 
 ## Advanced Usage
 
+    user> (create-account! "foo@bar.com" :password "foobar" :newsletter false)
+    {:api-key "cfe16172146139fce0ffda2565ba3035", :password "foobar"}
     user> (account-active?)
     true
     user> (integration-mode?)
