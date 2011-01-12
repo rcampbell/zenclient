@@ -1,6 +1,6 @@
-# zenclient
+# Zenclient
 
-Zenclient is a simple [Clojure](http://clojure.org/) wrapper for the [Zencoder](http://zencoder.com/) [API](http://zencoder.com/docs/api/).
+[Zenclient](https://github.com/rcampbell/zenclient) is a simple [Clojure](http://clojure.org/)  for the [Zencoder](http://zencoder.com/) [API](http://zencoder.com/docs/api/).
 
 ## Basic Usage
 
@@ -21,7 +21,34 @@ Zenclient is a simple [Clojure](http://clojure.org/) wrapper for the [Zencoder](
 
 ## Advanced Usage
 
-
+    user> (account-active?)
+    true
+    user> (integration-mode?)
+    true
+    user> (minutes-used)
+    0
+    user> (def job (create-job! "http://bit.ly/fzkUTT"
+                                :region "us"
+                                :download-connections 10
+                                :outputs [(+output :label "iPhone" :width 480 :height 320)
+                                          (+output :label "Web" :width 1280 :height 720)]
+                                :watermark (+watermark :x 20 :y 20)
+                                :thumbnails (+thumbnails :number 3)))
+    #'user/job
+    user> (->> job details outputs second progress state)
+    "finished"
+    user> (->> job details outputs second progress finished?)
+    true
+    user> (->> job details outputs second finished-at)
+    #<DateTime 2011-01-12T13:38:35.000+01:00>
+    user> (->> job details outputs first label)
+    "iPhone"
+    user> (map id (list-jobs))
+    (991936 991085 991057)			  
+    user> (map (juxt id state) (list-jobs))
+    ([991936 "finished"] [991085 "finished"] [991057 "failed"])
+    user> (resubmit-job! 991057)
+    true
 
 ## Installation
 

@@ -1,18 +1,19 @@
 (ns zenclient.core
+  (:require [clojure.contrib.http.agent :as http])
   (:use [clojure.walk :only (postwalk)]
 	[clojure.string :only (join blank? lower-case)]
 	[clojure.contrib.string :only (replace-char)]
 	[clojure.contrib.json :only (read-json json-str)]
-	[clojure.contrib.condition :only (raise)]
-	[clojure.contrib.http.agent :only (http-agent string success? status)])
+	[clojure.contrib.condition :only (raise)])
   (:import [java.util Map]
 	   [org.joda.time.format DateTimeFormat]))
-
-; (def *api-key* "c46d1828001d4969a03b45d60846649f")
 
 (declare *api-key*)
 
 (def ^{:private true} api "https://app.zencoder.com/api")
+
+(def ^{:private true} headers {"Accept" "application/json"
+			       "Content-Type" "application/json"})
 
 (letfn [(rename [a b k] (keyword (replace-char a b (name k))))
 	(swap [a b]
@@ -21,28 +22,26 @@
   (def ^{:private true} dash->underscore (swap \- \_))
   (def ^{:private true} underscore->dash (swap \_ \-)))
 
-(let [parse (comp underscore->dash read-json string)
+(let [parse (comp underscore->dash read-json http/string)
       handle (fn [agent] (let [body (parse agent)]
-			   (if (success? agent)
+			   (if (http/success? agent)
 			     body
 			     (let [{errors :errors} body]
 			       (raise :message (join "; " errors)
-				      :status (status agent)
-				      :errors errors)))))
-      headers {"Accept" "application/json"
-	       "Content-Type" "application/json"}]
+				      :status (http/status agent)
+				      :errors errors)))))]
   (defn- api-get [path]
     (let [uri (str api path)]
-      (handle (http-agent uri :headers headers))))
+      (handle (http/http-agent uri :headers headers))))
   (defn- api-post
     ([path] (api-post path {}))
     ([path body]
        (let [uri (str api path)
 	     json-body (json-str (dash->underscore body))]
-	 (handle (http-agent uri :method "POST" :headers headers :body json-body)))))
-  (defn- api-delete [path]
-    (let [uri (str api path)]
-      (handle (http-agent uri :method "DELETE")))))
+	 (handle (http/http-agent uri
+				  :method "POST"
+				  :headers headers
+				  :body json-body))))))
 
 (defn- ci= [l r] (.equalsIgnoreCase l r))
 
@@ -58,9 +57,7 @@
 	   :api-key
 	   :password
 	   :pass-through
-	   :input-media-file
 	   :output-media-files
-	   :outputs
 	   :thumbnails
 	   :watermark
 	  ; :format ns conflict
@@ -91,16 +88,21 @@
     (api-post "/jobs" job)))
 
 (letfn [(options-map [& options] (apply array-map options))]
-  (def with-output options-map)
-  (def with-watermark options-map)
-  (def with-thumbnails options-map)
-  (def with-access-control options-map))
+  (def +output options-map)
+  (def +watermark options-map)
+  (def +thumbnails options-map)
+  (def +access-control options-map))
 
 
 ;; Getting Job Progress
 
-(defn output-file-progress [output-id]
-  (api-get (format "/outputs/%s/progress?api_key=%s" output-id *api-key*)))
+(defmulti progress
+  "retrieves the current progress of an output file"
+  class)
+(defmethod progress Map [output]
+  (progress (output id)))
+(defmethod progress :default [output-id]
+  (api-get (format "/outputs/%s/progress?api_key=%s" (str output-id) *api-key*)))
       
 (defn state [src] (:state src))
 (letfn [(state= [v] (fn [src] (ci= v (state src))))]
@@ -119,8 +121,9 @@
   (def downloading? (event= "Downloading"))
   (def transcoding? (event= "Transcoding"))
   (def uploading? (event= "Uploading")))
-(defn progress [src]
+(defn event-progress
   "returns the percent complete of the current event"
+  [src]
   (if-let [percent (:progress src)]
     (Float/valueOf percent) nil))
 
@@ -130,14 +133,15 @@
 (defn list-jobs []
   (map :job (api-get (format "/jobs?api_key=%s" *api-key*))))
 
-(defn details
-  "pulls the latest job details where src is a either job id or job map"
-  [src]
-  (:job (api-get (format "/jobs/%s?api_key=%s"
-			 (if (instance? Map src) (src id) src)
-			 *api-key*))))
+(defmulti details class)
+(defmethod details Map [job]
+  (details (job id)))
+(defmethod details :default [job-id]
+  (:job (api-get (format "/jobs/%s?api_key=%s" (str job-id) *api-key*))))
 
 (def test? :test)
+(defn input [m] (or (:input m) (:input-media-file m)))
+(defn outputs [m] (or (:outputs m) (:output-media-files m)))
 
 (let [pattern "yyyy-MM-dd'T'HH:mm:ssZ"
       formatter (DateTimeFormat/forPattern pattern)
@@ -148,13 +152,16 @@
   (def submitted-at (comp timestamp :submitted-at)))
 
 (defn resubmit-job! [job-id]
-  (api-get (format "/jobs/%s/resubmit?api_key=%s" job-id *api-key*)))
+  (let [uri (format "%s/jobs/%s/resubmit?api_key=%s" api (str job-id) *api-key*)]
+    (http/success? (http/http-agent uri))))
 
 (defn cancel-job! [job-id]
-  (api-get (format "/jobs/%s/cancel?api_key=%s" job-id *api-key*)))
+  (let [uri (format "%s/jobs/%s/cancel?api_key=%s" api (str job-id) *api-key*)]
+    (http/success? (http/http-agent uri))))
   
 (defn delete-job! [job-id]
-  (api-delete (format "/jobs/%s?api_key=%s" job-id *api-key*)))
+  (let [uri (format "%s/jobs/%s?api_key=%s" api (str job-id) *api-key*)]
+    (http/success? (http/http-agent uri :method "DELETE"))))
 
 
 ;; Working With Accounts
@@ -167,7 +174,7 @@
     response))
 
 (defn account-details []
-  ((api-get (format "/account?api_key=%s" *api-key*))))
+  (api-get (format "/account?api_key=%s" *api-key*)))
 
 (let [select (lazy-loader account-details)]
   (def account-state (partial select :account-state))
