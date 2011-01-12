@@ -8,7 +8,10 @@
   (:import [java.util Map]
 	   [org.joda.time.format DateTimeFormat]))
 
-(declare *api-key*)
+(def ^{:private true} *api-key*)
+
+(defn set-api-key! [key]
+  (intern 'zenclient.core '*api-key* key))
 
 (def ^{:private true} api "https://app.zencoder.com/api")
 

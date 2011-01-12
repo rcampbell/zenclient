@@ -71,7 +71,14 @@
       <version>1.0</version>
     </dependency>
 
-## Todo
+## Notes
+
+If you already have an account with an API key, you can set it using the `set-api-key!` fn:
+
+    user> (set-api-key! "b46d1828001d4369a03b41d60846649f")
+    #'zenclient.core/*api-key*
+
+## TODO
 
 1. DateTime functions throw NPEs if that state has not yet been reached, like `finished-at` during "processing". These should instead return `nil`. 
 
