@@ -6,7 +6,7 @@
 
     user> (use 'zenclient.core)
     nil
-    user> (create-account! "foo@bar.com")
+    user> (create-account! "foo@bar.com") ; use your own e-mail address
     {:api-key "8333b48957189f68c2fc57364e75df16", :password "NEkDJZBWyzNj"}
     user> (def job (create-job! "http://bit.ly/fzkUTT"))
     #'user/job
@@ -68,6 +68,10 @@
       <artifactId>zenclient</artifactId>
       <version>1.0</version>
     </dependency>
+
+## Todo
+
+1. DateTime functions throw NPEs if that state has not yet been reached, like `finished-at` during "processing". These should instead return `nil`. 
 
 ## License
 
