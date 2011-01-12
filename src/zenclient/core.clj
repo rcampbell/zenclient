@@ -1,17 +1,18 @@
 (ns zenclient.core
   (:require [clojure.contrib.http.agent :as http])
   (:use [clojure.walk :only (postwalk)]
-	[clojure.string :only (join blank? lower-case)]
+	[clojure.string :only (join)]
+	[clojure.contrib.def :only (defunbound-)]
 	[clojure.contrib.string :only (replace-char)]
 	[clojure.contrib.json :only (read-json json-str)]
 	[clojure.contrib.condition :only (raise)])
   (:import [java.util Map]
 	   [org.joda.time.format DateTimeFormat]))
 
-(def ^{:private true} *api-key*)
+(defunbound- *api-key* "dynamically bound via fn set-api-key! or create-account!")
 
 (defn set-api-key! [key]
-  (intern 'zenclient.core '*api-key* key))
+  (def ^{:private true} *api-key* key))
 
 (def ^{:private true} api "https://app.zencoder.com/api")
 
