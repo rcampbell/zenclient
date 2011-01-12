@@ -1,6 +1,6 @@
 # Zenclient
 
-[Zenclient](https://github.com/rcampbell/zenclient) is a simple [Clojure](http://clojure.org/)  for the [Zencoder](http://zencoder.com/) [API](http://zencoder.com/docs/api/).
+[Zenclient](https://github.com/rcampbell/zenclient) is a simple [Clojure](http://clojure.org/) DSL for the [Zencoder](http://zencoder.com/) [API](http://zencoder.com/docs/api/).
 
 ## Basic Usage
 
@@ -52,7 +52,18 @@
 
 ## Installation
 
+### [Leiningen](https://github.com/technomancy/leiningen) or [Cake](https://github.com/ninjudd/cake)
 
+    <>
+
+### [Maven](http://maven.apache.org/) or [Ivy](http://ant.apache.org/ivy/)
+
+    <repository>
+      <id>clojars.org</id>
+      <url>http://clojars.org/repo</url>
+    </repository>
+
+    <>
 
 ## License
 
