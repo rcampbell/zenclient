@@ -60,6 +60,7 @@
 (doseq [k [:id
 	   :api-key
 	   :password
+	   :job
 	   :pass-through
 	   :output-media-files
 	   :thumbnails
@@ -130,6 +131,11 @@
   [src]
   (if-let [percent (:progress src)]
     (Float/valueOf percent) nil))
+
+
+;; Notifications
+
+(def notification (comp underscore->dash read-json))
 
 
 ;; Working With Jobs
