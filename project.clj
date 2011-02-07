@@ -11,7 +11,9 @@
   :dev-dependencies [[swank-clojure "1.2.1"]
 		     [lein-clojars "0.6.0"]]
   :aot [zenclient.java]
-  :jar-exclusions [#"\.DS_Store"])
-;  :jvm-opts ["-noverify"
-;	     ~(format "-javaagent:%s/jrebel.jar"
-;		      (System/getenv "JREBEL_HOME"))])
+  :jar-exclusions [#"\.DS_Store"]
+  :jvm-opts ["-XX:PermSize=128M"
+	     "-XX:MaxPermSize=256M"
+	     "-noverify"
+	     ~(format "-javaagent:%s/jrebel.jar"
+		      (System/getenv "JREBEL_HOME"))])
