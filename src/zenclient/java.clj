@@ -56,10 +56,10 @@
 
 (defn -output-init [m] [[] m])
 
-(alias -output-getId    :id)
-(alias -output-getState :state)
-(alias -output-getLabel :label)
-(alias -output-getUrl   :url)
+(alias -output-getId        :id)
+(alias -output-getState     :state)
+(alias -output-getLabel     :label)
+(alias -output-getUrl       :url)
 
 (alias -output-isReady      ready?)
 (alias -output-isWaiting    waiting?)
@@ -107,7 +107,7 @@
 
 
 (defn -core-init [api-key]
-  (use 'zenclient.core)
+  (use '[zenclient.core :exclude (alias)])
   [[] api-key])
 
 (defn+key -eval [this sexpr] (eval (read-string sexpr)))
