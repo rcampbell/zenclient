@@ -117,8 +117,8 @@
   ([this input options]
      (binding [zenclient.core/*api-key* (.apiKey this)]
        (let [opts (read-string (str "(" options ")"))
-	     job  (apply create-job! input opts)]
-	 (zenclient.java.Job. job)))))
+	     m  (apply create-job! input opts)]
+	 (zenclient.java.Job. m)))))
 
 (defn -core-notification [_ json]
   (let [m (notification json)]
