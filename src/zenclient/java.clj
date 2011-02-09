@@ -101,8 +101,8 @@
 	   :init init
 	   :state apiKey
 	   :methods [[eval [String] Object]
-		     [createJob [String] java.util.Map]
-		     [createJob [String String] java.util.Map]
+		     [createJob [String] zenclient.java.Job]
+		     [createJob [String String] zenclient.java.Job]
 		     [notification [String] zenclient.java.Notification]])
 
 
