@@ -113,11 +113,12 @@
 (defn+key -eval [this sexpr] (eval (read-string sexpr)))
 
 (defn -core-createJob
-  ([this input] (-createJob this input ""))
+  ([this input] (-core-createJob this input ""))
   ([this input options]
      (binding [zenclient.core/*api-key* (.apiKey this)]
-       (let [opts (read-string (str "(" options ")"))]
-	 (apply create-job! input opts)))))
+       (let [opts (read-string (str "(" options ")"))
+	     job  (apply create-job! input opts)]
+	 (zenclient.java.Job. job)))))
 
 (defn -core-notification [_ json]
   (let [m (notification json)]
