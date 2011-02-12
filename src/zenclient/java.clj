@@ -110,7 +110,7 @@
   (use '[zenclient.core :exclude (alias)])
   [[] api-key])
 
-(defn+key -eval [this sexpr] (eval (read-string sexpr)))
+(defn+key -core-eval [this sexpr] (eval (read-string sexpr)))
 
 (defn -core-createJob
   ([this input] (-core-createJob this input ""))
