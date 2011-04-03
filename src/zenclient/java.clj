@@ -42,32 +42,36 @@
 	   :constructors {[java.util.Map] []}
 	   :init init
 	   :state state
-	   :methods [[getId        [] long]
-		     [getState     [] String]
-		     [getLabel     [] String]
-		     [getUrl       [] String]
-		     [isReady      [] boolean]
-		     [isWaiting    [] boolean]
-		     [isAssigning  [] boolean]
-		     [isProcessing [] boolean]
-		     [isFinished   [] boolean]
-		     [isFailed     [] boolean]
-		     [isCancelled  [] boolean]])
+	   :methods [[getId           [] long]
+		     [getState        [] String]
+		     [getLabel        [] String]
+		     [getUrl          [] String]
+                     [getErrorLink    [] String]
+                     [getErrorMessage [] String]
+		     [isReady         [] boolean]
+		     [isWaiting       [] boolean]
+		     [isAssigning     [] boolean]
+		     [isProcessing    [] boolean]
+		     [isFinished      [] boolean]
+		     [isFailed        [] boolean]
+		     [isCancelled     [] boolean]])
 
 (defn -output-init [m] [[] m])
 
-(alias -output-getId        :id)
-(alias -output-getState     :state)
-(alias -output-getLabel     :label)
-(alias -output-getUrl       :url)
+(alias -output-getId           :id)
+(alias -output-getState        :state)
+(alias -output-getLabel        :label)
+(alias -output-getUrl          :url)
+(alias -output-getErrorLink    :error-link)
+(alias -output-getErrorMessage :error-message)
 
-(alias -output-isReady      ready?)
-(alias -output-isWaiting    waiting?)
-(alias -output-isAssigning  assigning?)
-(alias -output-isProcessing processing?)
-(alias -output-isFinished   finished?)
-(alias -output-isFailed     failed?)
-(alias -output-isCancelled  cancelled?)
+(alias -output-isReady         ready?)
+(alias -output-isWaiting       waiting?)
+(alias -output-isAssigning     assigning?)
+(alias -output-isProcessing    processing?)
+(alias -output-isFinished      finished?)
+(alias -output-isFailed        failed?)
+(alias -output-isCancelled     cancelled?)
 
 
 ;; Notification
