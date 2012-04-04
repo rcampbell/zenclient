@@ -1,51 +1,54 @@
 (ns zenclient.core
-  (:require [clojure.contrib.http.agent :as http])
+  (:refer-clojure :exclude (replace))
+  (:require [clj-http.client :as http])
   (:use [clojure.walk :only (postwalk)]
-	[clojure.string :only (join)]
-	[clojure.contrib.def :only (defunbound-)]
-	[clojure.contrib.string :only (replace-char)]
-	[clojure.contrib.json :only (read-json json-str)]
-	[clojure.contrib.condition :only (raise)])
+	[clojure.string :only (join replace)]
+        [clojure.data.json :only (read-json json-str)]
+        [slingshot.slingshot :only (throw+)])
   (:import [java.util Map]
 	   [org.joda.time.format DateTimeFormat]))
 
-(defunbound- *api-key* "dynamically bound via fn set-api-key! or create-account!")
+(def ^{:private true
+       :dynamic true
+       :doc     "dynamically bound via fn set-api-key! or create-account!"}
+  *api-key*)
 
 (defn set-api-key! [key]
-  (def ^{:private true} *api-key* key))
+  (def ^:private ^:dynamic
+    *api-key* key))
 
-(def ^{:private true} api "https://app.zencoder.com/api")
+(def ^:private api "https://app.zencoder.com/api")
 
-(def ^{:private true} headers {"Accept" "application/json"
-			       "Content-Type" "application/json"})
-
-(letfn [(rename [a b k] (keyword (replace-char a b (name k))))
+(letfn [(rename [a b k] (keyword (replace (name k) a b)))
 	(swap [a b]
 	      (letfn [(f [[k v]] (if (keyword? k) [(rename a b k) v] [k v]))]
 		(fn [m] (postwalk (fn [x] (if (map? x) (into {} (map f x)) x)) m))))]
-  (def ^{:private true} dash->underscore (swap \- \_))
-  (def ^{:private true} underscore->dash (swap \_ \-)))
+  (def ^:private dash->underscore (swap \- \_))
+  (def ^:private underscore->dash (swap \_ \-)))
 
-(let [parse (comp underscore->dash read-json http/string)
-      handle (fn [agent] (let [body (parse agent)]
-			   (if (http/success? agent)
-			     body
-			     (let [{errors :errors} body]
-			       (raise :message (join "; " errors)
-				      :status (http/status agent)
-				      :errors errors)))))]
+(let [handle (fn [resp] (do
+                         (clojure.pprint/pprint resp)
+                         (if (http/success? resp)
+                           resp
+                           (let [{errors :errors} (:body resp)]
+                             (throw+ :message (join "; " errors)
+                                     :status (:status resp)
+                                     :errors errors)))))]
   (defn- api-get [path]
     (let [uri (str api path)]
-      (handle (http/http-agent uri :headers headers))))
+      (handle (http/get uri
+                        {:accept :json
+                         :as     :clojure}))))
   (defn- api-post
     ([path] (api-post path {}))
     ([path body]
        (let [uri (str api path)
 	     json-body (json-str (dash->underscore body))]
-	 (handle (http/http-agent uri
-				  :method "POST"
-				  :headers headers
-				  :body json-body))))))
+	 (handle (http/post uri
+                            {:body         json-body
+                             :content-type :json
+                             :accept       :json
+                             :as           :clojure}))))))
 
 (defn- ci= [l r] (.equalsIgnoreCase l r))
 
@@ -163,15 +166,15 @@
 
 (defn resubmit-job! [job-id]
   (let [uri (format "%s/jobs/%s/resubmit?api_key=%s" api (str job-id) *api-key*)]
-    (http/success? (http/http-agent uri))))
+    (http/success? (http/get uri))))
 
 (defn cancel-job! [job-id]
   (let [uri (format "%s/jobs/%s/cancel?api_key=%s" api (str job-id) *api-key*)]
-    (http/success? (http/http-agent uri))))
+    (http/success? (http/get uri))))
   
 (defn delete-job! [job-id]
   (let [uri (format "%s/jobs/%s?api_key=%s" api (str job-id) *api-key*)]
-    (http/success? (http/http-agent uri :method "DELETE"))))
+    (http/success? (http/delete uri))))
 
 
 ;; Working With Accounts

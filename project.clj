@@ -5,11 +5,12 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"
             :distribution :repo
             :comments "same as Clojure"}  
-  :dependencies [[org.clojure/clojure "1.2.0"]
-                 [org.clojure/clojure-contrib "1.2.0"]
-		 [joda-time/joda-time "1.6.2"]]
-  :dev-dependencies [[swank-clojure "1.2.1"]
-		     [lein-clojars "0.6.0"]]
+  :dependencies [[org.clojure/clojure "1.3.0"]
+                 [org.clojure/data.json "0.1.3"]
+                 [slingshot "0.10.2"]
+                 [clj-http "0.3.5"]
+		 [joda-time/joda-time "2.1"]]
+  :dev-dependencies [[lein-clojars "0.6.0"]]
   :aot [zenclient.java]
   :jar-exclusions [#"\.DS_Store"]
   :jvm-opts ["-XX:PermSize=128M"
