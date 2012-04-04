@@ -8,13 +8,12 @@
   (:import [java.util Map]
 	   [org.joda.time.format DateTimeFormat]))
 
-(def ^{:private true
-       :dynamic true
-       :doc     "dynamically bound via fn set-api-key! or create-account!"}
-  *api-key*)
+(declare *api-key*)
 
 (defn set-api-key! [key]
-  (def ^:private ^:dynamic
+  (def ^{:private true
+         :dynamic true
+         :doc     "dynamically bound via fn set-api-key! or create-account!"}
     *api-key* key))
 
 (def ^:private api "https://app.zencoder.com/api")
@@ -27,9 +26,9 @@
   (def ^:private underscore->dash (swap \_ \-)))
 
 (let [handle (fn [resp] (do
-                         (clojure.pprint/pprint resp)
+                         (clojure.pprint/pprint (-> resp :body underscore->dash))
                          (if (http/success? resp)
-                           resp
+                           (-> resp :body underscore->dash)
                            (let [{errors :errors} (:body resp)]
                              (throw+ :message (join "; " errors)
                                      :status (:status resp)
@@ -38,7 +37,7 @@
     (let [uri (str api path)]
       (handle (http/get uri
                         {:accept :json
-                         :as     :clojure}))))
+                         :as     :json}))))
   (defn- api-post
     ([path] (api-post path {}))
     ([path body]
@@ -48,7 +47,7 @@
                             {:body         json-body
                              :content-type :json
                              :accept       :json
-                             :as           :clojure}))))))
+                             :as           :json}))))))
 
 (defn- ci= [l r] (.equalsIgnoreCase l r))
 
