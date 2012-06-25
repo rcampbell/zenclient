@@ -8,15 +8,12 @@
   (:import [java.util Map]
 	   [org.joda.time.format DateTimeFormat]))
 
-(declare *api-key*)
+(def ^:dynamic *api-key*)
 
 (defn set-api-key! [key]
-  (def ^{:private true
-         :dynamic true
-         :doc     "dynamically bound via fn set-api-key! or create-account!"}
-    *api-key* key))
+  (def ^:dynamic *api-key* key))
 
-(def ^:private api "https://app.zencoder.com/api")
+(def ^:private api "https://app.zencoder.com/api/v2")
 
 (letfn [(rename [a b k] (keyword (replace (name k) a b)))
 	(swap [a b]
@@ -25,14 +22,13 @@
   (def ^:private dash->underscore (swap \- \_))
   (def ^:private underscore->dash (swap \_ \-)))
 
-(let [handle (fn [resp] (do
-                         (clojure.pprint/pprint (-> resp :body underscore->dash))
-                         (if (http/success? resp)
-                           (-> resp :body underscore->dash)
-                           (let [{errors :errors} (:body resp)]
-                             (throw+ :message (join "; " errors)
-                                     :status (:status resp)
-                                     :errors errors)))))]
+(let [handle (fn [resp]                          
+               (if (http/success? resp)
+                 (-> resp :body underscore->dash)
+                 (let [{errors :errors} (:body resp)]
+                   (throw+ :message (join "; " errors)
+                           :status (:status resp)
+                           :errors errors))))]
   (defn- api-get [path]
     (let [uri (str api path)]
       (handle (http/get uri
@@ -182,7 +178,7 @@
   (let [opts (apply array-map options)
 	account (merge {:email email :terms-of-service "1"} opts)
 	response (api-post "/account" account)]
-    (def *api-key* (response api-key))
+    (def ^:dynamic *api-key* (response api-key))
     response))
 
 (defn account-details []
